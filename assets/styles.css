@@ -1,0 +1,70 @@
+body {
+    background-color: #f2f2f7;
+    font-family: 'Mulish', 'Open Sans', 'Avenir', 'Helvetica Neue', sans-serif;
+    margin: 12px;
+}
+
+.app-bar {
+    align-items: center;
+    background-color: #ffffff;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    padding: 0px 12px;
+}
+
+.card, .component-vertical {
+    background-color: #ffffff;
+    border-radius: 5px;
+    box-shadow: 2px 2px 2px lightgrey;
+    padding: 15px;
+}
+
+.component-horizontal, .component-vertical {
+    display: flex;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+.card {
+    margin-right: 12px;
+    position: relative;
+    width: 10%
+}
+
+.card:after {
+    content: "";
+    display: block;
+    padding-bottom: 10%;
+  }
+
+.component-horizontal {
+    flex-flow: row nowrap;
+}
+
+.component-vertical {
+    flex-direction: column;
+}
+
+.review {
+    margin: 10px;
+}
+
+.user {
+    align-items: center;
+    display: flex;
+    justify-content: flex-end;
+    flex-flow: row nowrap;
+    width: 20%;
+}
+
+.user > * {
+    margin-left: 8px;
+    width: auto;
+}
+
+.wordcloud {
+    display: flex;
+    justify-content: center;
+    margin: 10px;
+}
