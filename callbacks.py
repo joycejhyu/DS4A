@@ -2,7 +2,14 @@ import base64
 from dash.dependencies import Input, Output, State
 import dash_html_components as html
 from io import BytesIO
+import nltk
+import pandas as pd
 from wordcloud import WordCloud, STOPWORDS
+
+nltk.download('averaged_perceptron_tagger')
+nltk.download('punkt')
+
+df = pd.read_csv('dashboard_data.csv', low_memory=False)
 
 def register_callbacks(app):
     # Product Selection
@@ -16,11 +23,9 @@ def register_callbacks(app):
         ]
     )
     def update_product_data(value):
-        # TODO: Update to use real data
-        if value == 'mascara':
-            return 1, 2
-        elif value == 'lipstick':
-            return 3, 4
+        if value:
+            reviews = df.loc[df['asin'] == value]
+            return round(reviews['overall'].mean(), 2), len(reviews.index)
         else:
             return 'N/A', 'N/A'
 
@@ -36,40 +41,25 @@ def register_callbacks(app):
     )
     def update_product_reviews(product, review_type):
         response = []
-        # TODO: Update to use real data instead of hardcoded placeholders
-        if product == 'mascara':
+        top_reviews = []
+        reviews = df.loc[df['asin'] == product]
+        if product:
             if review_type == 'pos':
-                response.append(
-                        [
-                            create_review('Pos Review 1 for mascara', '4.3', 'test 1', 'N/A'),
-                            create_review('Pos Review 2 for mascara', '4.5', 'test 2', 'N/A'),
-                            create_review('Pos Review 3 for mascara', '4.6', 'test 3', 'N/A'),
-                            create_review('Pos Review 4 for mascara', '4.7', 'test 4', 'N/A'),
-                            create_review('Pos Review 5 for mascara', '4.8', 'test 5', 'N/A'),
-                        ]
-                )
+                reviews = reviews.loc[df['sentiment'] > 0]
             else:
-                response.append(
-                    [
-                        create_review('Neg Review 1 for mascara', '2.3', 'test 6', 'N/A'),
-                        create_review('Neg Review 2 for mascara', '1.5', 'test 7', 'N/A'),
-                    ]
+                reviews = reviews.loc[df['sentiment'] < 1]
+            
+            ranked_reviews = reviews.sort_values(by=['prob1'], ascending=False).head(5)
+            for ind in ranked_reviews.index:
+                top_reviews.append(
+                    create_review(
+                        ranked_reviews['summary'][ind],
+                        ranked_reviews['overall'][ind],
+                        ranked_reviews['reviewText'][ind],
+                        ranked_reviews['style'][ind]
+                    )
                 )
-        elif product == 'lipstick':
-            if review_type == 'pos':
-                response.append(
-                    [
-                        create_review('Pos Review 1 for lipstick', '4.3', 'test 8', 'N/A'),
-                        create_review('Pos Review 2 for lipstick', '4.5', 'test 9', 'N/A'),
-                    ]
-                )
-            else:
-                response.append(
-                    [
-                        create_review('Neg Review 1 for lipstick', '2.3', 'test 10', 'N/A'),
-                        create_review('Neg Review 2 for lipstick', '1.5', 'test 11', 'N/A'),
-                    ]
-                )
+            response.append(top_reviews)
         else:
             response.append([html.P('N/A')])
         
@@ -87,9 +77,9 @@ def register_callbacks(app):
                 ),
                 html.Div(
                     [
-                        html.Div('Rating: ' + rating),
-                        html.Div('Review Text: ' + review_text),
-                        html.Div('Style: ' + style),
+                        html.Div('Rating: ' + str(rating)),
+                        html.Div('Review Text: ' + str(review_text)),
+                        html.Div('Style: ' + str(style)),
                     ],
                     className="review"
                 )
@@ -112,21 +102,22 @@ def register_callbacks(app):
     )
     def update_product_keywords(product, keyword_type):
         img = BytesIO()
-        # TODO: Update to use real data instead of hardcoded placeholders
-        words = 'I am absolutely amazed by this product. I have very dry sensitive skin, large pours that tend to get dirty. I mixed with apple cider vinegar and applied with a paint brush. I waited 10 minutes as I have sensitive skin, while feeling it pulsate and deep clean. I then wiped off with a warm wet cloth. As the container says your face will be red after which is fine as it feels very refreshed and clean. The red will go away within 30 minutes. I did this before bed. The results are amazing, the big pours are completely cleaned out no dirt what so ever. I applied my daily facial oils and moisturizers and from just one use I already see results. Because of moisturizing after it did not dry my face out, I’m sure if you don’t it may cause dryness. I also have tried this product on my pits with apple cider vinegar. I wanted to see if it would get rid of the body odour so I don’t have to wear deodorant. I left it on for 10 minutes and wiped off. I have gone 2 full days with no deodorant and no odour has occurred to me!! I will continue to use this product once a week as the results really do come out how I expected if not better.'
-        if product == 'mascara':
+        reviews = df.loc[df['asin'] == product]
+        if product:
             if keyword_type == 'pos':
-                generate_wordcloud(words).save(img, format='PNG')
-                return '', 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
+                reviews = reviews.loc[df['sentiment'] > 0]
             else:
-                generate_wordcloud(words).save(img, format='PNG')
-                return '', 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
-        elif product == 'lipstick':
-            if keyword_type == 'pos':
-                generate_wordcloud(words).save(img, format='PNG')
-                return '', 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
+                reviews = reviews.loc[df['sentiment'] < 1]
+            
+            text = ' '.join(reviews['reviewText'])
+            if not text:
+                return html.P('N/A'), ''
             else:
-                generate_wordcloud(words).save(img, format='PNG')
+                tokens = nltk.word_tokenize(text)
+                tags = nltk.pos_tag(tokens)
+                keywords = [word for word, pos in tags if (pos == 'JJ' or pos == 'JJR' or pos == 'JJS' or pos == 'RBS')]
+
+                generate_wordcloud(' '.join(keywords)).save(img, format='PNG')
                 return '', 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
         else:
             return html.P('N/A'), ''

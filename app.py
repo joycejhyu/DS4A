@@ -5,6 +5,7 @@ from callbacks import register_callbacks
 from components.summary_info import *
 from components.reviews import *
 from components.keywords import *
+import pandas as pd
 
 app = dash.Dash(
     __name__,
@@ -16,10 +17,9 @@ app = dash.Dash(
     ]
 )
 
-# TODO: replace placeholder data
-product_list = [ 
-    {'label': 'Mascara', 'value': 'mascara'},
-    {'label': 'Lipstick', 'value': 'lipstick'},
+df = pd.read_csv('dashboard_data.csv')
+product_list = [
+    {'label': str(asin), 'value': str(asin)} for asin in df.asin.unique()
 ]
 
 app.layout = html.Div(
